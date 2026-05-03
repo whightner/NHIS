@@ -1,0 +1,39 @@
+# NHIS Backend — Production Requirements
+# Install with:  pip install -r requirements.txt
+
+# ── Web framework ─────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9          # Required for Form() / file uploads
+
+# ── Database ──────────────────────────────────────────────────────────
+SQLAlchemy==2.0.35
+psycopg2-binary==2.9.9           # PostgreSQL driver
+alembic==1.13.2                  # Database migrations
+
+# ── Auth / Security ───────────────────────────────────────────────────
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# ── Configuration ─────────────────────────────────────────────────────
+pydantic==2.8.2
+pydantic-settings==2.4.0         # Settings class with .env support
+python-dotenv==1.0.1
+
+# ── QR & Card generation ──────────────────────────────────────────────
+qrcode[pil]==7.4.2
+reportlab==4.2.2
+Pillow==10.4.0
+
+# ── Fuzzy duplicate detection ─────────────────────────────────────────
+rapidfuzz==3.9.7
+
+# ── Testing ───────────────────────────────────────────────────────────
+pytest==8.3.2
+pytest-asyncio==0.23.8
+httpx==0.27.2                    # Async HTTP client for TestClient
+
+# ── Dev tools (optional, not required in production) ─────────────────
+# black==24.8.0
+# ruff==0.5.7
+# mypy==1.11.2
