@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 
 from app.modules.identity.business.permissions import Permission, require_permission
@@ -28,6 +29,8 @@ class UserAccount:
     roles: set[Role] = field(default_factory=set)
     status: AccountStatus = AccountStatus.ACTIVE
     first_login: bool = True
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if not self.id or not self.id.strip():
@@ -43,6 +46,11 @@ class UserAccount:
     def is_active(self) -> bool:
         """Return True when the account may authenticate."""
         return self.status == AccountStatus.ACTIVE
+
+    @property
+    def primary_role(self) -> Role:
+        """Return the main role used by the current database schema."""
+        return sorted(self.roles, key=lambda role: role.value)[0]
 
     def ensure_active(self) -> None:
         """Raise when the account cannot authenticate or act."""

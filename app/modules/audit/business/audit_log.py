@@ -14,6 +14,7 @@ from app.shared.business.errors import ValidationError
 class AuditAction(str, Enum):
     """Actions that are meaningful for traceability."""
 
+    UNKNOWN = "UNKNOWN"
     LOGIN_SUCCESS = "LOGIN_SUCCESS"
     LOGIN_FAILED = "LOGIN_FAILED"
     REGISTERED_PATIENT = "REGISTERED_PATIENT"

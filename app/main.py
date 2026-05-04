@@ -75,8 +75,9 @@ def root():
 
 
 # ── Register versioned routers ────────────────────────────────────────
-from app.modules.user.user_routes import router as user_router          # noqa: E402
-from app.modules.patient.patient_routes import router as patient_router  # noqa: E402
+from app.modules.audit.api import router as audit_router       # noqa: E402
+from app.modules.identity.api import router as user_router     # noqa: E402
+from app.modules.patients.api import router as patient_router  # noqa: E402
 
 # v1 — Auth & User management
 app.include_router(
@@ -90,6 +91,12 @@ app.include_router(
     patient_router,
     prefix=f"{ApiPrefix.V1}/patients",
     tags=["Patients"],
+)
+
+app.include_router(
+    audit_router,
+    prefix=f"{ApiPrefix.V1}/audit",
+    tags=["Audit"],
 )
 
 logger.info("Routers registered under %s", ApiPrefix.V1)
