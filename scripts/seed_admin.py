@@ -17,10 +17,11 @@ import os
 # Ensure the project root is on the path when run directly
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from app.core.constants import Roles, UserStatus
 from app.core.security import hash_password
 from app.database.database import SessionLocal
-from app.modules.user.user_model import User
+from app.modules.identity.business import AccountStatus
+from app.modules.identity.infrastructure.models import User
+from app.shared.business import Role
 
 
 DEFAULT_ADMIN_USERNAME = "admin01"
@@ -43,8 +44,9 @@ def seed_admin() -> None:
         admin = User(
             username=DEFAULT_ADMIN_USERNAME,
             password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
-            role=Roles.ADMIN,
-            status=UserStatus.ACTIVE,
+            role=Role.ADMIN.value,
+            roles=[Role.ADMIN.value],
+            status=AccountStatus.ACTIVE.value,
             first_login=True,
         )
         db.add(admin)
