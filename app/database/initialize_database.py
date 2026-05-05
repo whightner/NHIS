@@ -14,9 +14,10 @@ from app.database.database import engine
 
 # Import all models so that Base.metadata is fully populated before
 # create_all is called.  These imports are intentional side-effects.
-import app.modules.user.user_model          # noqa: F401
-import app.modules.patient.patient_model    # noqa: F401
-import app.modules.audit.audit_model        # noqa: F401
+import app.modules.identity.infrastructure.models  # noqa: F401
+import app.modules.patients.infrastructure.models  # noqa: F401
+import app.modules.audit.infrastructure.models     # noqa: F401
+import app.modules.staff.infrastructure.models     # noqa: F401
 
 logger = logging.getLogger(__name__)
 

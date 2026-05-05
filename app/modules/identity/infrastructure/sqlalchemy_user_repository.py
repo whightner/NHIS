@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.modules.identity.business import AccountStatus, UserAccount
-from app.modules.user.user_model import User as UserRow
+from app.modules.identity.infrastructure.models import User as UserRow
 from app.shared.business import Role
 
 
@@ -37,11 +37,12 @@ class SQLAlchemyUserAccountRepository:
             username=username,
             password_hash=password_hash,
             role=role.value,
+            roles=[role.value],
             status=status.value,
             first_login=True,
         )
         self._db.add(row)
-        self._db.commit()
+        self._db.flush()
         self._db.refresh(row)
         return self._to_business(row)
 
@@ -50,9 +51,10 @@ class SQLAlchemyUserAccountRepository:
         row = self._get_row(account.username)
         row.password_hash = account.password_hash
         row.role = account.primary_role.value
+        row.roles = [role.value for role in sorted(account.roles, key=lambda item: item.value)]
         row.status = account.status.value
         row.first_login = account.first_login
-        self._db.commit()
+        self._db.flush()
         self._db.refresh(row)
         return self._to_business(row)
 
@@ -64,11 +66,12 @@ class SQLAlchemyUserAccountRepository:
 
     @staticmethod
     def _to_business(row: UserRow) -> UserAccount:
+        role_values = row.roles or [row.role]
         return UserAccount(
             id=str(row.user_id),
             username=row.username,
             password_hash=row.password_hash,
-            roles={Role(row.role)},
+            roles={Role(role) for role in role_values},
             status=AccountStatus(row.status),
             first_login=row.first_login,
             created_at=row.created_at,

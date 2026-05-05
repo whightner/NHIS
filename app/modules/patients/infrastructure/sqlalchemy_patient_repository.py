@@ -7,8 +7,8 @@ from datetime import date, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.modules.patient.patient_model import Patient as PatientRow
-from app.modules.patients.business import Patient, VerificationStatus
+from app.modules.patients.business import Patient, PatientCard, VerificationStatus
+from app.modules.patients.infrastructure.models import Patient as PatientRow
 from app.shared.business import Gender, Person
 
 
@@ -97,9 +97,14 @@ class SQLAlchemyPatientRepository:
             photo_path=patient.photo_path,
             security_code=patient.security_code,
             verification_status=patient.verification_status.value,
+            rejection_reason=patient.rejection_reason,
+            card_pdf_path=patient.card.pdf_path if patient.card else None,
+            card_qr_code_path=patient.card.qr_code_path if patient.card else None,
+            card_generated_at=patient.card.generated_at if patient.card else None,
+            card_reprint_count=patient.card.reprint_count if patient.card else 0,
         )
         self._db.add(row)
-        self._db.commit()
+        self._db.flush()
         self._db.refresh(row)
         return self._to_business(row)
 
@@ -116,7 +121,13 @@ class SQLAlchemyPatientRepository:
         row.photo_path = patient.photo_path
         row.security_code = patient.security_code
         row.verification_status = patient.verification_status.value
-        self._db.commit()
+        row.rejection_reason = patient.rejection_reason
+        if patient.card:
+            row.card_pdf_path = patient.card.pdf_path
+            row.card_qr_code_path = patient.card.qr_code_path
+            row.card_generated_at = patient.card.generated_at
+            row.card_reprint_count = patient.card.reprint_count
+        self._db.flush()
         self._db.refresh(row)
         return self._to_business(row)
 
@@ -128,6 +139,18 @@ class SQLAlchemyPatientRepository:
 
     @staticmethod
     def _to_business(row: PatientRow) -> Patient:
+        card = None
+        if row.card_pdf_path and row.card_qr_code_path and row.card_generated_at:
+            card = PatientCard(
+                uhid=row.uhid,
+                pdf_path=row.card_pdf_path,
+                qr_code_path=row.card_qr_code_path,
+                generated_at=SQLAlchemyPatientRepository._ensure_timezone(
+                    row.card_generated_at
+                ),
+                reprint_count=row.card_reprint_count or 0,
+            )
+
         return Patient(
             uhid=row.uhid,
             person=Person(
@@ -142,6 +165,8 @@ class SQLAlchemyPatientRepository:
             security_code=row.security_code,
             verification_status=VerificationStatus(row.verification_status),
             photo_path=row.photo_path,
+            card=card,
+            rejection_reason=row.rejection_reason,
             created_at=SQLAlchemyPatientRepository._ensure_timezone(row.created_at),
             updated_at=SQLAlchemyPatientRepository._ensure_timezone(row.updated_at),
         )

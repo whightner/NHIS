@@ -20,10 +20,11 @@ from alembic import context
 from app.core.config import settings
 from app.database.base import Base
 
-# Import all models so their metadata is registered with Base
-import app.modules.user.user_model       # noqa: F401
-import app.modules.patient.patient_model  # noqa: F401
-import app.modules.audit.audit_model      # noqa: F401
+# Import all models so their metadata is registered with Base.
+import app.modules.identity.infrastructure.models  # noqa: F401
+import app.modules.patients.infrastructure.models  # noqa: F401
+import app.modules.audit.infrastructure.models     # noqa: F401
+import app.modules.staff.infrastructure.models     # noqa: F401
 
 # ── Alembic Config object ─────────────────────────────────────────────
 config = context.config

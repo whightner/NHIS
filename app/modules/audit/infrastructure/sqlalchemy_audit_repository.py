@@ -6,8 +6,8 @@ from datetime import timezone
 
 from sqlalchemy.orm import Session
 
-from app.modules.audit.audit_model import AuditLog as AuditLogRow
 from app.modules.audit.business import AuditAction, AuditLog
+from app.modules.audit.infrastructure.models import AuditLog as AuditLogRow
 
 
 class SQLAlchemyAuditLogRepository:
@@ -22,16 +22,18 @@ class SQLAlchemyAuditLogRepository:
             user_id=audit_log.actor_id,
             action=audit_log.action.value,
             entity_type=audit_log.entity_type,
+            entity_id=audit_log.entity_id,
             patient_uhid=(
                 audit_log.entity_id
                 if audit_log.entity_type == "Patient"
                 else None
             ),
             ip_address=audit_log.ip_address,
+            details=dict(audit_log.details),
             timestamp=audit_log.occurred_at,
         )
         self._db.add(row)
-        self._db.commit()
+        self._db.flush()
         self._db.refresh(row)
         return self._to_business(row)
 
@@ -39,7 +41,13 @@ class SQLAlchemyAuditLogRepository:
         """Return patient-related audit entries ordered newest first."""
         rows = (
             self._db.query(AuditLogRow)
-            .filter(AuditLogRow.patient_uhid == patient_uhid)
+            .filter(
+                (AuditLogRow.patient_uhid == patient_uhid)
+                | (
+                    (AuditLogRow.entity_type == "Patient")
+                    & (AuditLogRow.entity_id == patient_uhid)
+                )
+            )
             .order_by(AuditLogRow.timestamp.desc())
             .all()
         )
@@ -57,13 +65,14 @@ class SQLAlchemyAuditLogRepository:
 
     def _to_business(self, row: AuditLogRow) -> AuditLog:
         action_value, details = self._parse_action(row.action)
+        details.update(row.details or {})
         return AuditLog(
             id=str(row.id),
             actor_id=row.user_id,
             action=action_value,
             occurred_at=self._ensure_timezone(row.timestamp),
             entity_type=row.entity_type,
-            entity_id=row.patient_uhid,
+            entity_id=row.entity_id or row.patient_uhid,
             ip_address=row.ip_address,
             details=details,
         )

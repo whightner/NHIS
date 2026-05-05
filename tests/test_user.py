@@ -50,7 +50,7 @@ class TestLogin:
         """Locked/inactive account returns 401."""
         from app.core.constants import Roles, UserStatus
         from app.core.security import hash_password
-        from app.modules.user.user_model import User
+        from app.modules.identity.infrastructure.models import User
 
         locked = User(
             username="lockeduser",

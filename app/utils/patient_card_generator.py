@@ -27,8 +27,7 @@ def generate_card(patient) -> str:
     The card is stored at ``storage/cards/{uhid}.pdf``.  If the QR code
     image does not yet exist it is generated first.
 
-    :param patient: A :class:`~app.modules.patient.patient_model.Patient`
-                    ORM instance (duck-typed to support test stubs).
+    :param patient: A patient-like object with card display attributes.
     :return: Relative file path to the saved PDF card.
     :raises OSError: If the storage directory cannot be created or the PDF
                      cannot be written.

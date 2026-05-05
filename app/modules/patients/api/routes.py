@@ -261,40 +261,33 @@ def upload_patient_photo(
 @router.post("/{uhid}/card", summary="Generate patient ID card")
 def generate_patient_card(
     uhid: str,
-    background_tasks: BackgroundTasks,
     current_account: UserAccount = Depends(
         require_permission(Permission.GENERATE_PATIENT_CARD)
     ),
     service: PatientApplicationService = Depends(get_patient_service),
 ):
-    """Queue card and QR generation for a patient."""
+    """Generate card and QR artifacts for a patient."""
     try:
-        patient = service.get_patient(uhid, actor=current_account)
+        service.generate_card(uhid, actor=current_account)
     except Exception as exc:
         raise to_http_exception(exc) from exc
-
-    background_tasks.add_task(_generate_qr_background, patient.uhid)
-    background_tasks.add_task(_generate_card_background, patient)
-    return {"message": "Card generation queued.", "uhid": uhid}
+    return {"message": "Card generated successfully.", "uhid": uhid}
 
 
 @router.post("/{uhid}/reprint", summary="Reprint patient card")
 def reprint_patient_card(
     uhid: str,
-    background_tasks: BackgroundTasks,
     current_account: UserAccount = Depends(
         require_permission(Permission.GENERATE_PATIENT_CARD)
     ),
     service: PatientApplicationService = Depends(get_patient_service),
 ):
-    """Queue a patient card reprint."""
+    """Generate a patient card reprint."""
     try:
-        patient = service.get_patient(uhid, actor=current_account)
+        service.reprint_card(uhid, actor=current_account)
     except Exception as exc:
         raise to_http_exception(exc) from exc
-
-    background_tasks.add_task(_generate_card_background, patient)
-    return {"message": "Card reprint queued.", "uhid": uhid}
+    return {"message": "Card reprint completed.", "uhid": uhid}
 
 
 @router.get("/{uhid}/card/download", summary="Download patient card PDF")

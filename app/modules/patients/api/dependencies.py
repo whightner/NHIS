@@ -15,6 +15,7 @@ from app.modules.patients.infrastructure import (
     SecureUhidGenerator,
     SettingsQrCodeGenerator,
 )
+from app.shared.infrastructure import SQLAlchemyTransactionManager
 
 
 def get_patient_service(db: Session = Depends(get_db)) -> PatientApplicationService:
@@ -29,4 +30,5 @@ def get_patient_service(db: Session = Depends(get_db)) -> PatientApplicationServ
         qr_codes=SettingsQrCodeGenerator(),
         cards=ReportLabPatientCardGenerator(),
         audit=AuditRecorder(audit_repository),
+        transaction=SQLAlchemyTransactionManager(db),
     )

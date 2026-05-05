@@ -29,7 +29,12 @@ from app.modules.patients.application.ports import (
     UhidGenerator,
 )
 from app.modules.patients.business import Patient, PatientCard, VerificationStatus
-from app.shared.application import InvalidOperation, ResourceNotFound, VerificationFailed
+from app.shared.application import (
+    InvalidOperation,
+    ResourceNotFound,
+    TransactionManager,
+    VerificationFailed,
+)
 from app.shared.business import BusinessRuleViolation, Gender, Person, ValidationError
 
 
@@ -45,6 +50,7 @@ class PatientApplicationService:
         qr_codes: QrCodeGenerator,
         cards: PatientCardGenerator,
         audit: AuditRecorder,
+        transaction: TransactionManager,
     ) -> None:
         self._patients = patients
         self._uhids = uhids
@@ -53,6 +59,7 @@ class PatientApplicationService:
         self._qr_codes = qr_codes
         self._cards = cards
         self._audit = audit
+        self._transaction = transaction
 
     def register_patient(
         self,
@@ -82,6 +89,7 @@ class PatientApplicationService:
             entity_id=patient.uhid,
             ip_address=command.ip_address,
         )
+        self._transaction.commit()
         return PatientRegistrationResult(
             patient=patient,
             possible_duplicates=duplicates,
@@ -181,6 +189,7 @@ class PatientApplicationService:
             entity_id=patient.uhid,
             ip_address=ip_address,
         )
+        self._transaction.commit()
         return patient
 
     def reject_patient(
@@ -205,6 +214,7 @@ class PatientApplicationService:
             ip_address=command.ip_address,
             details={"reason": command.reason},
         )
+        self._transaction.commit()
         return patient
 
     def verify_patient(self, uhid: str, *, actor: UserAccount) -> Patient:
@@ -221,6 +231,7 @@ class PatientApplicationService:
             entity_type="Patient",
             entity_id=patient.uhid,
         )
+        self._transaction.commit()
         return patient
 
     def verify_security_code(
@@ -243,6 +254,7 @@ class PatientApplicationService:
             entity_type="Patient",
             entity_id=patient.uhid,
         )
+        self._transaction.commit()
         return patient
 
     def upload_photo(
@@ -263,6 +275,7 @@ class PatientApplicationService:
             entity_type="Patient",
             entity_id=patient.uhid,
         )
+        self._transaction.commit()
         return photo_path
 
     def generate_qr_code(self, uhid: str) -> str:
@@ -285,6 +298,7 @@ class PatientApplicationService:
             entity_type="Patient",
             entity_id=patient.uhid,
         )
+        self._transaction.commit()
         return card
 
     def reprint_card(self, uhid: str, *, actor: UserAccount) -> PatientCard:
@@ -298,12 +312,14 @@ class PatientApplicationService:
             entity_type="Patient",
             entity_id=patient.uhid,
         )
+        self._transaction.commit()
         return card
 
     def generate_card_for_patient(self, patient: Patient) -> PatientCard:
         """Generate card artifacts for an already-loaded patient."""
         card = self._cards.generate(patient)
         patient.attach_card(card)
+        self._patients.save(patient)
         return card
 
     def _get_existing_patient(self, uhid: str) -> Patient:

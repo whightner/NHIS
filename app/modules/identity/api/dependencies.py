@@ -18,6 +18,7 @@ from app.modules.identity.infrastructure import (
     SQLAlchemyUserAccountRepository,
 )
 from app.shared.business import PermissionDenied
+from app.shared.infrastructure import SQLAlchemyTransactionManager
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -30,6 +31,7 @@ def get_identity_service(db: Session = Depends(get_db)) -> IdentityService:
         passwords=BcryptPasswordHasher(),
         tokens=JwtTokenIssuer(),
         audit=AuditRecorder(audit_repository),
+        transaction=SQLAlchemyTransactionManager(db),
     )
 
 

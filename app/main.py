@@ -78,6 +78,7 @@ def root():
 from app.modules.audit.api import router as audit_router       # noqa: E402
 from app.modules.identity.api import router as user_router     # noqa: E402
 from app.modules.patients.api import router as patient_router  # noqa: E402
+from app.modules.staff.api import router as staff_router       # noqa: E402
 
 # v1 — Auth & User management
 app.include_router(
@@ -97,6 +98,12 @@ app.include_router(
     audit_router,
     prefix=f"{ApiPrefix.V1}/audit",
     tags=["Audit"],
+)
+
+app.include_router(
+    staff_router,
+    prefix=f"{ApiPrefix.V1}/staff",
+    tags=["Staff"],
 )
 
 logger.info("Routers registered under %s", ApiPrefix.V1)

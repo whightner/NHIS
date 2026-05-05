@@ -34,9 +34,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 def create_test_tables():
     """Create all tables before each test and drop them after."""
     # Import models so metadata is populated
-    import app.modules.user.user_model       # noqa: F401
-    import app.modules.patient.patient_model  # noqa: F401
-    import app.modules.audit.audit_model      # noqa: F401
+    import app.modules.identity.infrastructure.models  # noqa: F401
+    import app.modules.patients.infrastructure.models  # noqa: F401
+    import app.modules.audit.infrastructure.models     # noqa: F401
+    import app.modules.staff.infrastructure.models     # noqa: F401
 
     Base.metadata.create_all(bind=test_engine)
     yield
@@ -79,7 +80,7 @@ def admin_user(db_session):
     """Create and return a seeded ADMIN user."""
     from app.core.constants import Roles, UserStatus
     from app.core.security import hash_password
-    from app.modules.user.user_model import User
+    from app.modules.identity.infrastructure.models import User
 
     user = User(
         username="testadmin",
@@ -110,7 +111,7 @@ def operator_user(db_session):
     """Create and return a seeded OPERATOR user."""
     from app.core.constants import Roles, UserStatus
     from app.core.security import hash_password
-    from app.modules.user.user_model import User
+    from app.modules.identity.infrastructure.models import User
 
     user = User(
         username="testoperator",

@@ -8,6 +8,7 @@ from app.shared.application.errors import (
     ResourceNotFound,
     VerificationFailed,
 )
+from app.shared.application.transaction import TransactionManager
 
 __all__ = [
     "ApplicationError",
@@ -15,5 +16,6 @@ __all__ = [
     "DuplicateResource",
     "InvalidOperation",
     "ResourceNotFound",
+    "TransactionManager",
     "VerificationFailed",
 ]

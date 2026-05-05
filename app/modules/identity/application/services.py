@@ -22,6 +22,7 @@ from app.shared.application import (
     AuthenticationFailed,
     DuplicateResource,
     ResourceNotFound,
+    TransactionManager,
 )
 from app.shared.business import BusinessRuleViolation, Role, ValidationError
 
@@ -43,11 +44,13 @@ class IdentityService:
         passwords: PasswordHasher,
         tokens: TokenIssuer,
         audit: AuditRecorder,
+        transaction: TransactionManager,
     ) -> None:
         self._users = users
         self._passwords = passwords
         self._tokens = tokens
         self._audit = audit
+        self._transaction = transaction
 
     def login(self, command: LoginCommand) -> TokenResult:
         """Authenticate an account and return a bearer token."""
@@ -58,6 +61,7 @@ class IdentityService:
                 action=AuditAction.LOGIN_FAILED,
                 ip_address=command.ip_address,
             )
+            self._transaction.commit()
             raise AuthenticationFailed("Invalid username or password.")
 
         if not self._passwords.verify(command.password, account.password_hash):
@@ -66,6 +70,7 @@ class IdentityService:
                 action=AuditAction.LOGIN_FAILED,
                 ip_address=command.ip_address,
             )
+            self._transaction.commit()
             raise AuthenticationFailed("Invalid username or password.")
 
         try:
@@ -79,6 +84,7 @@ class IdentityService:
             action=AuditAction.LOGIN_SUCCESS,
             ip_address=command.ip_address,
         )
+        self._transaction.commit()
         return TokenResult(access_token=token)
 
     def create_user(
@@ -108,6 +114,7 @@ class IdentityService:
             entity_id=account.username,
             details={"role": command.role.value},
         )
+        self._transaction.commit()
         return account
 
     def get_by_username(self, username: str) -> UserAccount:
@@ -133,7 +140,9 @@ class IdentityService:
         if not self._passwords.verify(command.current_password, actor.password_hash):
             raise AuthenticationFailed("Current password is incorrect.")
         actor.change_password_hash(self._passwords.hash(command.new_password))
-        return self._users.save(actor)
+        updated = self._users.save(actor)
+        self._transaction.commit()
+        return updated
 
     def update_status(
         self,
@@ -153,6 +162,7 @@ class IdentityService:
             entity_id=updated.username,
             details={"status": command.status.value},
         )
+        self._transaction.commit()
         return updated
 
     @staticmethod
