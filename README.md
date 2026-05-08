@@ -1,5 +1,63 @@
 # NHIS - National Health Information System
 
+## Repository Structure
+
+This repository is organized as a Dart and Flutter monorepo:
+
+```text
+apps/
+  mobile/   Flutter client application
+  api/      Dart API server
+```
+
+The mobile application never connects directly to the database. It communicates with the API over HTTP or HTTPS, and the API is responsible for database access, validation, authorization, and audit logging.
+
+```text
+Flutter mobile app
+        |
+        | HTTPS
+        v
+Dart API server
+        |
+        | secure database connection
+        v
+Remote database
+```
+
+### Mobile App
+
+Run the Flutter app:
+
+```bash
+cd apps/mobile
+flutter run
+```
+
+Analyze the Flutter app:
+
+```bash
+cd apps/mobile
+flutter analyze
+```
+
+### API Server
+
+The API workspace is currently an empty standard structure. Its implementation will be added progressively.
+
+```text
+apps/api/
+  bin/
+  lib/
+    config/
+    core/
+    database/
+    modules/
+      auth/
+      users/
+    shared/
+  test/
+```
+
 ## English
 
 ### Overview
