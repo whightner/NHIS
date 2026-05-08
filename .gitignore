@@ -191,6 +191,7 @@ Desktop.ini
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+pubspec.lock
 
 # Flutter symbolication and obfuscation
 app.*.symbols
