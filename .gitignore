@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -155,6 +154,9 @@ logs/
 # IDEs and editors
 .idea/
 .vscode/
+*.iml
+*.ipr
+*.iws
 *.sublime-project
 *.sublime-workspace
 *.swp
@@ -180,3 +182,32 @@ Desktop.ini
 *.bak
 *.tmp
 *.temp
+
+# Flutter/Dart/Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Flutter symbolication and obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Swift Package Manager
+.build/
+.buildlog/
+.swiftpm/
+
+# Other generated files
+*.class
+.atom/
+.svn/
+migrate_working_dir/
