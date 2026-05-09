@@ -3,6 +3,7 @@ class UserDataBaseModel {
     required this.id,
     required this.firstName,
     required this.lastName,
+    required this.passwordHash,
     required this.role,
     required this.status,
     this.email,
@@ -22,6 +23,7 @@ class UserDataBaseModel {
   static const lastNameColumn = 'last_name';
   static const emailColumn = 'email';
   static const phoneNumberColumn = 'phone_number';
+  static const passwordHashColumn = 'password_hash';
   static const roleColumn = 'role';
   static const statusColumn = 'status';
   static const facilityIdColumn = 'facility_id';
@@ -36,6 +38,7 @@ class UserDataBaseModel {
   final String lastName;
   final String? email;
   final String? phoneNumber;
+  final String passwordHash;
   final String role;
   final String status;
   final String? facilityId;
@@ -54,6 +57,7 @@ class UserDataBaseModel {
       lastName: row[lastNameColumn] as String,
       email: row[emailColumn] as String?,
       phoneNumber: row[phoneNumberColumn] as String?,
+      passwordHash: row[passwordHashColumn] as String,
       role: row[roleColumn] as String,
       status: row[statusColumn] as String,
       facilityId: row[facilityIdColumn] as String?,
@@ -72,6 +76,7 @@ class UserDataBaseModel {
       lastNameColumn: lastName,
       emailColumn: email,
       phoneNumberColumn: phoneNumber,
+      passwordHashColumn: passwordHash,
       roleColumn: role,
       statusColumn: status,
       facilityIdColumn: facilityId,
