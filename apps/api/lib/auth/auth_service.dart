@@ -44,7 +44,9 @@ final class AuthService {
     String? userAgent,
     DateTime? now,
   }) async {
-    final user = await UserDatabaseTable.selectByEmail(email.trim());
+    final user = await UserDatabaseTable.selectByEmail(
+      email.trim().toLowerCase(),
+    );
 
     if (user == null) {
       throw const AuthException('Invalid credentials');
