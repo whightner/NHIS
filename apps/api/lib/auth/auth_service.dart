@@ -1,5 +1,6 @@
 import '../users/user_database_model.dart';
 import '../users/user_database_table.dart';
+import 'auth_password_service.dart';
 import 'auth_token_service.dart';
 import 'user_session_database_model.dart';
 import 'user_session_database_table.dart';
@@ -26,10 +27,46 @@ final class AuthException implements Exception {
 }
 
 final class AuthService {
-  AuthService({AuthTokenService? tokenService})
-    : _tokenService = tokenService ?? AuthTokenService();
+  AuthService({
+    AuthTokenService? tokenService,
+    AuthPasswordService? passwordService,
+  }) : _tokenService = tokenService ?? AuthTokenService(),
+       _passwordService = passwordService ?? const AuthPasswordService();
 
   final AuthTokenService _tokenService;
+  final AuthPasswordService _passwordService;
+
+  Future<AuthSessionResult> login({
+    required String email,
+    required String password,
+    String? deviceId,
+    String? ipAddress,
+    String? userAgent,
+    DateTime? now,
+  }) async {
+    final user = await UserDatabaseTable.selectByEmail(email.trim());
+
+    if (user == null) {
+      throw const AuthException('Invalid credentials');
+    }
+
+    final isPasswordValid = _passwordService.verifyPassword(
+      password: password,
+      passwordHash: user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw const AuthException('Invalid credentials');
+    }
+
+    return createSession(
+      user: user,
+      deviceId: deviceId,
+      ipAddress: ipAddress,
+      userAgent: userAgent,
+      now: now,
+    );
+  }
 
   Future<AuthSessionResult> createSession({
     required UserDatabaseModel user,
