@@ -4,11 +4,15 @@ import 'auth/auth_api.dart';
 import 'auth/user_session_database_table.dart';
 import 'http/json_http.dart';
 import 'users/user_database_table.dart';
+import 'users/users_api.dart';
 
 final class NhisApiApp {
-  NhisApiApp({AuthApi? authApi}) : _authApi = authApi ?? AuthApi();
+  NhisApiApp({AuthApi? authApi, UsersApi? usersApi})
+    : _authApi = authApi ?? AuthApi(),
+      _usersApi = usersApi ?? UsersApi();
 
   final AuthApi _authApi;
+  final UsersApi _usersApi;
 
   Future<void> initialize() async {
     await UserDatabaseTable.createTable();
@@ -36,6 +40,12 @@ final class NhisApiApp {
       final handledByAuth = await _authApi.handle(request);
 
       if (handledByAuth) {
+        return;
+      }
+
+      final handledByUsers = await _usersApi.handle(request);
+
+      if (handledByUsers) {
         return;
       }
 

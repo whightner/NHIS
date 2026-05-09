@@ -122,5 +122,8 @@ void setCorsHeaders(HttpResponse response) {
       HttpHeaders.accessControlAllowHeadersHeader,
       '${HttpHeaders.authorizationHeader}, ${HttpHeaders.contentTypeHeader}',
     )
-    ..set(HttpHeaders.accessControlAllowMethodsHeader, 'GET, POST, OPTIONS');
+    ..set(
+      HttpHeaders.accessControlAllowMethodsHeader,
+      'GET, POST, PUT, DELETE, OPTIONS',
+    );
 }
