@@ -1,4 +1,4 @@
-import 'user_data_base_model.dart';
+import 'user_database_model.dart';
 
 final class UserDataBaseTable {
   const UserDataBaseTable._();
