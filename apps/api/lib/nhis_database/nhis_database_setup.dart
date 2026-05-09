@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:postgres/postgres.dart';
 
-final class NhisDataBaseConfig {
-  const NhisDataBaseConfig({
+final class NhisDatabaseConfig {
+  const NhisDatabaseConfig({
     required this.host,
     required this.database,
     required this.username,
@@ -19,13 +19,13 @@ final class NhisDataBaseConfig {
   final String username;
   final String password;
 
-  factory NhisDataBaseConfig.fromEnvironment([
+  factory NhisDatabaseConfig.fromEnvironment([
     Map<String, String>? environment,
   ]) {
     final env = environment ?? Platform.environment;
 
-    return NhisDataBaseConfig(
-      host: _requiredEnvironment(env, 'DB_HOST'),
+    return NhisDatabaseConfig(
+      host: _requiredEnvironment(env, 'NHIS_DB_HOST'),
       port: int.parse(env['NHIS_DB_PORT'] ?? '5432'),
       database: env['NHIS_DB_NAME'] ?? defaultDatabaseName,
       username: _requiredEnvironment(env, 'NHIS_DB_USER'),
@@ -57,23 +57,23 @@ final class NhisDataBaseConfig {
   }
 }
 
-final class NhisDataBaseSetup {
-  NhisDataBaseSetup._();
+final class NhisDatabaseSetup {
+  NhisDatabaseSetup._();
 
-  static final instance = NhisDataBaseSetup._();
+  static final instance = NhisDatabaseSetup._();
 
   Connection? _connection;
 
   Future<Connection> get connection => connect();
 
-  Future<Connection> connect({NhisDataBaseConfig? config}) async {
+  Future<Connection> connect({NhisDatabaseConfig? config}) async {
     final existingConnection = _connection;
 
     if (existingConnection != null) {
       return existingConnection;
     }
 
-    final resolvedConfig = config ?? NhisDataBaseConfig.fromEnvironment();
+    final resolvedConfig = config ?? NhisDatabaseConfig.fromEnvironment();
     final connection = await Connection.open(
       resolvedConfig.toEndpoint(),
       settings: const ConnectionSettings(sslMode: SslMode.require),

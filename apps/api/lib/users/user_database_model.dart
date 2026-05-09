@@ -1,5 +1,5 @@
-class UserDataBaseModel {
-  const UserDataBaseModel({
+class UserDatabaseModel {
+  const UserDatabaseModel({
     required this.id,
     required this.firstName,
     required this.lastName,
@@ -50,8 +50,8 @@ class UserDataBaseModel {
 
   String get fullName => '$firstName $lastName';
 
-  factory UserDataBaseModel.fromRow(Map<String, dynamic> row) {
-    return UserDataBaseModel(
+  factory UserDatabaseModel.fromRow(Map<String, dynamic> row) {
+    return UserDatabaseModel(
       id: row[idColumn] as String,
       firstName: row[firstNameColumn] as String,
       lastName: row[lastNameColumn] as String,

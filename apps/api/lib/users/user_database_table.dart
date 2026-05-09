@@ -1,103 +1,106 @@
+import 'package:postgres/postgres.dart';
+
+import '../nhis_database/nhis_database_setup.dart';
 import 'user_database_model.dart';
 
-final class UserDataBaseTable {
-  const UserDataBaseTable._();
+final class UserDatabaseTable {
+  const UserDatabaseTable._();
 
-  static const tableName = UserDataBaseModel.tableName;
+  static const tableName = UserDatabaseModel.tableName;
 
   static const columns = [
-    UserDataBaseModel.idColumn,
-    UserDataBaseModel.firstNameColumn,
-    UserDataBaseModel.lastNameColumn,
-    UserDataBaseModel.emailColumn,
-    UserDataBaseModel.phoneNumberColumn,
-    UserDataBaseModel.passwordHashColumn,
-    UserDataBaseModel.roleColumn,
-    UserDataBaseModel.statusColumn,
-    UserDataBaseModel.facilityIdColumn,
-    UserDataBaseModel.organizationIdColumn,
-    UserDataBaseModel.patientIdColumn,
-    UserDataBaseModel.createdAtColumn,
-    UserDataBaseModel.updatedAtColumn,
-    UserDataBaseModel.lastLoginAtColumn,
+    UserDatabaseModel.idColumn,
+    UserDatabaseModel.firstNameColumn,
+    UserDatabaseModel.lastNameColumn,
+    UserDatabaseModel.emailColumn,
+    UserDatabaseModel.phoneNumberColumn,
+    UserDatabaseModel.passwordHashColumn,
+    UserDatabaseModel.roleColumn,
+    UserDatabaseModel.statusColumn,
+    UserDatabaseModel.facilityIdColumn,
+    UserDatabaseModel.organizationIdColumn,
+    UserDatabaseModel.patientIdColumn,
+    UserDatabaseModel.createdAtColumn,
+    UserDatabaseModel.updatedAtColumn,
+    UserDatabaseModel.lastLoginAtColumn,
   ];
 
   static const createTableStatement = '''
 CREATE TABLE IF NOT EXISTS $tableName (
-  ${UserDataBaseModel.idColumn} TEXT PRIMARY KEY,
-  ${UserDataBaseModel.firstNameColumn} TEXT NOT NULL,
-  ${UserDataBaseModel.lastNameColumn} TEXT NOT NULL,
-  ${UserDataBaseModel.emailColumn} TEXT UNIQUE,
-  ${UserDataBaseModel.phoneNumberColumn} TEXT,
-  ${UserDataBaseModel.passwordHashColumn} TEXT NOT NULL,
-  ${UserDataBaseModel.roleColumn} TEXT NOT NULL,
-  ${UserDataBaseModel.statusColumn} TEXT NOT NULL,
-  ${UserDataBaseModel.facilityIdColumn} TEXT,
-  ${UserDataBaseModel.organizationIdColumn} TEXT,
-  ${UserDataBaseModel.patientIdColumn} TEXT,
-  ${UserDataBaseModel.createdAtColumn} TIMESTAMPTZ,
-  ${UserDataBaseModel.updatedAtColumn} TIMESTAMPTZ,
-  ${UserDataBaseModel.lastLoginAtColumn} TIMESTAMPTZ
+  ${UserDatabaseModel.idColumn} TEXT PRIMARY KEY,
+  ${UserDatabaseModel.firstNameColumn} TEXT NOT NULL,
+  ${UserDatabaseModel.lastNameColumn} TEXT NOT NULL,
+  ${UserDatabaseModel.emailColumn} TEXT UNIQUE,
+  ${UserDatabaseModel.phoneNumberColumn} TEXT,
+  ${UserDatabaseModel.passwordHashColumn} TEXT NOT NULL,
+  ${UserDatabaseModel.roleColumn} TEXT NOT NULL,
+  ${UserDatabaseModel.statusColumn} TEXT NOT NULL,
+  ${UserDatabaseModel.facilityIdColumn} TEXT,
+  ${UserDatabaseModel.organizationIdColumn} TEXT,
+  ${UserDatabaseModel.patientIdColumn} TEXT,
+  ${UserDatabaseModel.createdAtColumn} TIMESTAMPTZ,
+  ${UserDatabaseModel.updatedAtColumn} TIMESTAMPTZ,
+  ${UserDatabaseModel.lastLoginAtColumn} TIMESTAMPTZ
 );
 ''';
 
   static const selectAllStatement = '''
 SELECT
-  ${UserDataBaseModel.idColumn},
-  ${UserDataBaseModel.firstNameColumn},
-  ${UserDataBaseModel.lastNameColumn},
-  ${UserDataBaseModel.emailColumn},
-  ${UserDataBaseModel.phoneNumberColumn},
-  ${UserDataBaseModel.passwordHashColumn},
-  ${UserDataBaseModel.roleColumn},
-  ${UserDataBaseModel.statusColumn},
-  ${UserDataBaseModel.facilityIdColumn},
-  ${UserDataBaseModel.organizationIdColumn},
-  ${UserDataBaseModel.patientIdColumn},
-  ${UserDataBaseModel.createdAtColumn},
-  ${UserDataBaseModel.updatedAtColumn},
-  ${UserDataBaseModel.lastLoginAtColumn}
+  ${UserDatabaseModel.idColumn},
+  ${UserDatabaseModel.firstNameColumn},
+  ${UserDatabaseModel.lastNameColumn},
+  ${UserDatabaseModel.emailColumn},
+  ${UserDatabaseModel.phoneNumberColumn},
+  ${UserDatabaseModel.passwordHashColumn},
+  ${UserDatabaseModel.roleColumn},
+  ${UserDatabaseModel.statusColumn},
+  ${UserDatabaseModel.facilityIdColumn},
+  ${UserDatabaseModel.organizationIdColumn},
+  ${UserDatabaseModel.patientIdColumn},
+  ${UserDatabaseModel.createdAtColumn},
+  ${UserDatabaseModel.updatedAtColumn},
+  ${UserDatabaseModel.lastLoginAtColumn}
 FROM $tableName
-ORDER BY ${UserDataBaseModel.createdAtColumn} DESC;
+ORDER BY ${UserDatabaseModel.createdAtColumn} DESC;
 ''';
 
   static const selectByIdStatement = '''
 SELECT
-  ${UserDataBaseModel.idColumn},
-  ${UserDataBaseModel.firstNameColumn},
-  ${UserDataBaseModel.lastNameColumn},
-  ${UserDataBaseModel.emailColumn},
-  ${UserDataBaseModel.phoneNumberColumn},
-  ${UserDataBaseModel.passwordHashColumn},
-  ${UserDataBaseModel.roleColumn},
-  ${UserDataBaseModel.statusColumn},
-  ${UserDataBaseModel.facilityIdColumn},
-  ${UserDataBaseModel.organizationIdColumn},
-  ${UserDataBaseModel.patientIdColumn},
-  ${UserDataBaseModel.createdAtColumn},
-  ${UserDataBaseModel.updatedAtColumn},
-  ${UserDataBaseModel.lastLoginAtColumn}
+  ${UserDatabaseModel.idColumn},
+  ${UserDatabaseModel.firstNameColumn},
+  ${UserDatabaseModel.lastNameColumn},
+  ${UserDatabaseModel.emailColumn},
+  ${UserDatabaseModel.phoneNumberColumn},
+  ${UserDatabaseModel.passwordHashColumn},
+  ${UserDatabaseModel.roleColumn},
+  ${UserDatabaseModel.statusColumn},
+  ${UserDatabaseModel.facilityIdColumn},
+  ${UserDatabaseModel.organizationIdColumn},
+  ${UserDatabaseModel.patientIdColumn},
+  ${UserDatabaseModel.createdAtColumn},
+  ${UserDatabaseModel.updatedAtColumn},
+  ${UserDatabaseModel.lastLoginAtColumn}
 FROM $tableName
-WHERE ${UserDataBaseModel.idColumn} = @id
+WHERE ${UserDatabaseModel.idColumn} = @id
 LIMIT 1;
 ''';
 
   static const insertStatement = '''
 INSERT INTO $tableName (
-  ${UserDataBaseModel.idColumn},
-  ${UserDataBaseModel.firstNameColumn},
-  ${UserDataBaseModel.lastNameColumn},
-  ${UserDataBaseModel.emailColumn},
-  ${UserDataBaseModel.phoneNumberColumn},
-  ${UserDataBaseModel.passwordHashColumn},
-  ${UserDataBaseModel.roleColumn},
-  ${UserDataBaseModel.statusColumn},
-  ${UserDataBaseModel.facilityIdColumn},
-  ${UserDataBaseModel.organizationIdColumn},
-  ${UserDataBaseModel.patientIdColumn},
-  ${UserDataBaseModel.createdAtColumn},
-  ${UserDataBaseModel.updatedAtColumn},
-  ${UserDataBaseModel.lastLoginAtColumn}
+  ${UserDatabaseModel.idColumn},
+  ${UserDatabaseModel.firstNameColumn},
+  ${UserDatabaseModel.lastNameColumn},
+  ${UserDatabaseModel.emailColumn},
+  ${UserDatabaseModel.phoneNumberColumn},
+  ${UserDatabaseModel.passwordHashColumn},
+  ${UserDatabaseModel.roleColumn},
+  ${UserDatabaseModel.statusColumn},
+  ${UserDatabaseModel.facilityIdColumn},
+  ${UserDatabaseModel.organizationIdColumn},
+  ${UserDatabaseModel.patientIdColumn},
+  ${UserDatabaseModel.createdAtColumn},
+  ${UserDatabaseModel.updatedAtColumn},
+  ${UserDatabaseModel.lastLoginAtColumn}
 ) VALUES (
   @id,
   @first_name,
@@ -119,45 +122,112 @@ INSERT INTO $tableName (
   static const updateByIdStatement = '''
 UPDATE $tableName
 SET
-  ${UserDataBaseModel.firstNameColumn} = @first_name,
-  ${UserDataBaseModel.lastNameColumn} = @last_name,
-  ${UserDataBaseModel.emailColumn} = @email,
-  ${UserDataBaseModel.phoneNumberColumn} = @phone_number,
-  ${UserDataBaseModel.passwordHashColumn} = @password_hash,
-  ${UserDataBaseModel.roleColumn} = @role,
-  ${UserDataBaseModel.statusColumn} = @status,
-  ${UserDataBaseModel.facilityIdColumn} = @facility_id,
-  ${UserDataBaseModel.organizationIdColumn} = @organization_id,
-  ${UserDataBaseModel.patientIdColumn} = @patient_id,
-  ${UserDataBaseModel.updatedAtColumn} = @updated_at,
-  ${UserDataBaseModel.lastLoginAtColumn} = @last_login_at
-WHERE ${UserDataBaseModel.idColumn} = @id;
+  ${UserDatabaseModel.firstNameColumn} = @first_name,
+  ${UserDatabaseModel.lastNameColumn} = @last_name,
+  ${UserDatabaseModel.emailColumn} = @email,
+  ${UserDatabaseModel.phoneNumberColumn} = @phone_number,
+  ${UserDatabaseModel.passwordHashColumn} = @password_hash,
+  ${UserDatabaseModel.roleColumn} = @role,
+  ${UserDatabaseModel.statusColumn} = @status,
+  ${UserDatabaseModel.facilityIdColumn} = @facility_id,
+  ${UserDatabaseModel.organizationIdColumn} = @organization_id,
+  ${UserDatabaseModel.patientIdColumn} = @patient_id,
+  ${UserDatabaseModel.updatedAtColumn} = @updated_at,
+  ${UserDatabaseModel.lastLoginAtColumn} = @last_login_at
+WHERE ${UserDatabaseModel.idColumn} = @id;
 ''';
 
   static const deleteByIdStatement = '''
 DELETE FROM $tableName
-WHERE ${UserDataBaseModel.idColumn} = @id;
+WHERE ${UserDatabaseModel.idColumn} = @id;
 ''';
 
-  static Map<String, dynamic> idParameters(String id) {
-    return {UserDataBaseModel.idColumn: id};
+  static Future<void> createTable() async {
+    await _execute(createTableStatement, ignoreRows: true);
   }
 
-  static Map<String, dynamic> insertParameters(UserDataBaseModel user) {
+  static Future<List<UserDatabaseModel>> selectAll() async {
+    final result = await _execute(selectAllStatement);
+
+    return fromRows(result.map((row) => row.toColumnMap()));
+  }
+
+  static Future<UserDatabaseModel?> selectById(String id) async {
+    final result = await _execute(
+      Sql.named(selectByIdStatement),
+      parameters: idParameters(id),
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return fromRow(result.first.toColumnMap());
+  }
+
+  static Future<int> insert(UserDatabaseModel user) async {
+    final result = await _execute(
+      Sql.named(insertStatement),
+      parameters: insertParameters(user),
+      ignoreRows: true,
+    );
+
+    return result.affectedRows;
+  }
+
+  static Future<int> updateById(UserDatabaseModel user) async {
+    final result = await _execute(
+      Sql.named(updateByIdStatement),
+      parameters: updateParameters(user),
+      ignoreRows: true,
+    );
+
+    return result.affectedRows;
+  }
+
+  static Future<int> deleteById(String id) async {
+    final result = await _execute(
+      Sql.named(deleteByIdStatement),
+      parameters: idParameters(id),
+      ignoreRows: true,
+    );
+
+    return result.affectedRows;
+  }
+
+  static Map<String, dynamic> idParameters(String id) {
+    return {UserDatabaseModel.idColumn: id};
+  }
+
+  static Map<String, dynamic> insertParameters(UserDatabaseModel user) {
     return user.toRow();
   }
 
-  static Map<String, dynamic> updateParameters(UserDataBaseModel user) {
+  static Map<String, dynamic> updateParameters(UserDatabaseModel user) {
     final row = user.toRow();
-    row.remove(UserDataBaseModel.createdAtColumn);
+    row.remove(UserDatabaseModel.createdAtColumn);
     return row;
   }
 
-  static UserDataBaseModel fromRow(Map<String, dynamic> row) {
-    return UserDataBaseModel.fromRow(row);
+  static UserDatabaseModel fromRow(Map<String, dynamic> row) {
+    return UserDatabaseModel.fromRow(row);
   }
 
-  static List<UserDataBaseModel> fromRows(Iterable<Map<String, dynamic>> rows) {
-    return rows.map(UserDataBaseModel.fromRow).toList(growable: false);
+  static List<UserDatabaseModel> fromRows(Iterable<Map<String, dynamic>> rows) {
+    return rows.map(UserDatabaseModel.fromRow).toList(growable: false);
+  }
+
+  static Future<Result> _execute(
+    Object query, {
+    Object? parameters,
+    bool ignoreRows = false,
+  }) async {
+    final connection = await NhisDatabaseSetup.instance.connection;
+
+    return connection.execute(
+      query,
+      parameters: parameters,
+      ignoreRows: ignoreRows,
+    );
   }
 }
