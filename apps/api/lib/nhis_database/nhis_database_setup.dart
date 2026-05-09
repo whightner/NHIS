@@ -9,6 +9,7 @@ final class NhisDatabaseConfig {
     required this.username,
     required this.password,
     this.port = 5432,
+    this.sslMode = SslMode.require,
   });
 
   static const defaultDatabaseName = 'nhis_database';
@@ -18,6 +19,7 @@ final class NhisDatabaseConfig {
   final String database;
   final String username;
   final String password;
+  final SslMode sslMode;
 
   factory NhisDatabaseConfig.fromEnvironment([
     Map<String, String>? environment,
@@ -30,6 +32,7 @@ final class NhisDatabaseConfig {
       database: env['NHIS_DB_NAME'] ?? defaultDatabaseName,
       username: _requiredEnvironment(env, 'NHIS_DB_USER'),
       password: _requiredEnvironment(env, 'NHIS_DB_PASSWORD'),
+      sslMode: _parseSslMode(env['NHIS_DB_SSL_MODE'] ?? 'require'),
     );
   }
 
@@ -41,6 +44,25 @@ final class NhisDatabaseConfig {
       username: username,
       password: password,
     );
+  }
+
+  ConnectionSettings toConnectionSettings() {
+    return ConnectionSettings(sslMode: sslMode);
+  }
+
+  static SslMode _parseSslMode(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'disable':
+        return SslMode.disable;
+      case 'require':
+        return SslMode.require;
+      case 'verify_full':
+      case 'verify-full':
+      case 'verifyfull':
+        return SslMode.verifyFull;
+      default:
+        throw StateError('Unsupported NHIS_DB_SSL_MODE value: $value');
+    }
   }
 
   static String _requiredEnvironment(
@@ -76,7 +98,7 @@ final class NhisDatabaseSetup {
     final resolvedConfig = config ?? NhisDatabaseConfig.fromEnvironment();
     final connection = await Connection.open(
       resolvedConfig.toEndpoint(),
-      settings: const ConnectionSettings(sslMode: SslMode.require),
+      settings: resolvedConfig.toConnectionSettings(),
     );
 
     _connection = connection;

@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nhis_api
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      NHIS_API_HOST: 0.0.0.0
+      NHIS_API_PORT: 8080
+      NHIS_DB_HOST: database
+      NHIS_DB_PORT: 5432
+      NHIS_DB_NAME: nhis_database
+      NHIS_DB_USER: nhis_user
+      NHIS_DB_PASSWORD: nhis_password
+      NHIS_DB_SSL_MODE: disable
+      NHIS_JWT_SECRET: local-dev-secret-change-before-production
+      NHIS_JWT_ISSUER: nhis-api
+      NHIS_JWT_AUDIENCE: nhis-mobile
+      NHIS_ACCESS_TOKEN_MINUTES: 15
+      NHIS_REFRESH_TOKEN_DAYS: 30
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  database:
+    image: postgres:16-alpine
+    container_name: nhis_database
+    environment:
+      POSTGRES_DB: nhis_database
+      POSTGRES_USER: nhis_user
+      POSTGRES_PASSWORD: nhis_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nhis_user -d nhis_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - nhis_database_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  nhis_database_data:

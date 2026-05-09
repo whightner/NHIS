@@ -1,0 +1,17 @@
+.dart_tool/
+build/
+coverage/
+logs/
+storage/
+
+.env
+.env.*
+!.env.example
+
+*.log
+*.tmp
+*.bak
+
+Dockerfile
+docker-compose.yml
+DOCKER.md
