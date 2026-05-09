@@ -85,6 +85,27 @@ WHERE ${UserDatabaseModel.idColumn} = @id
 LIMIT 1;
 ''';
 
+  static const selectByEmailStatement = '''
+SELECT
+  ${UserDatabaseModel.idColumn},
+  ${UserDatabaseModel.firstNameColumn},
+  ${UserDatabaseModel.lastNameColumn},
+  ${UserDatabaseModel.emailColumn},
+  ${UserDatabaseModel.phoneNumberColumn},
+  ${UserDatabaseModel.passwordHashColumn},
+  ${UserDatabaseModel.roleColumn},
+  ${UserDatabaseModel.statusColumn},
+  ${UserDatabaseModel.facilityIdColumn},
+  ${UserDatabaseModel.organizationIdColumn},
+  ${UserDatabaseModel.patientIdColumn},
+  ${UserDatabaseModel.createdAtColumn},
+  ${UserDatabaseModel.updatedAtColumn},
+  ${UserDatabaseModel.lastLoginAtColumn}
+FROM $tableName
+WHERE ${UserDatabaseModel.emailColumn} = @email
+LIMIT 1;
+''';
+
   static const insertStatement = '''
 INSERT INTO $tableName (
   ${UserDatabaseModel.idColumn},
@@ -165,6 +186,19 @@ WHERE ${UserDatabaseModel.idColumn} = @id;
     return fromRow(result.first.toColumnMap());
   }
 
+  static Future<UserDatabaseModel?> selectByEmail(String email) async {
+    final result = await _execute(
+      Sql.named(selectByEmailStatement),
+      parameters: emailParameters(email),
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return fromRow(result.first.toColumnMap());
+  }
+
   static Future<int> insert(UserDatabaseModel user) async {
     final result = await _execute(
       Sql.named(insertStatement),
@@ -197,6 +231,10 @@ WHERE ${UserDatabaseModel.idColumn} = @id;
 
   static Map<String, dynamic> idParameters(String id) {
     return {UserDatabaseModel.idColumn: id};
+  }
+
+  static Map<String, dynamic> emailParameters(String email) {
+    return {UserDatabaseModel.emailColumn: email};
   }
 
   static Map<String, dynamic> insertParameters(UserDatabaseModel user) {
