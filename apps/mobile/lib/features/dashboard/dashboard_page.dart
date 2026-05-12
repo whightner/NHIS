@@ -1,26 +1,96 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../app/router.dart';
 import '../../shared/theme/app_colors.dart';
 import '../../shared/theme/app_text_styles.dart';
 import '../../shared/widgets/brand_mark.dart';
+import '../../user/session_controller.dart';
+import '../../user/user_service.dart';
 import '../../user/user_session.dart';
-import 'widgets/dashboard_header.dart';
-import 'widgets/session_countdown.dart';
-import 'widgets/quick_stats_row.dart';
-import 'widgets/quick_actions_grid.dart';
-import 'widgets/recent_activity_list.dart';
 
-/// Authenticated home — shown after a successful login.
-///
-/// Receives a [UserSession] from [LoginPage] via the navigator arguments.
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key, required this.session});
 
   final UserSession session;
 
-  // ── Logout ─────────────────────────────────────────────────────────────────
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
 
-  void _logout(BuildContext context) {
+class _DashboardPageState extends State<DashboardPage> {
+  final _userService = UserService(baseUrl: UserService.defaultBaseUrl());
+
+  Timer? _timer;
+  DateTime _now = DateTime.now();
+  bool? _apiConnected;
+  bool? _jwtValid;
+  bool _loggingOut = false;
+
+  Duration get _sessionDuration {
+    final duration = _now.difference(widget.session.createdAt.toLocal());
+    return duration.isNegative ? Duration.zero : duration;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => _now = DateTime.now());
+      if (widget.session.isExpired(at: DateTime.now())) {
+        _clearAndReturnToLogin();
+      }
+    });
+    _validateStatus();
+  }
+
+  Future<void> _validateStatus() async {
+    final apiFuture = _userService.ping();
+    final jwtFuture = _userService.currentUser(
+      accessToken: widget.session.accessToken,
+    );
+
+    final apiConnected = await apiFuture
+        .then((_) => true)
+        .catchError((_) => false);
+    final jwtValid = await jwtFuture.then((_) => true).catchError((_) => false);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _apiConnected = apiConnected;
+      _jwtValid = jwtValid && !widget.session.isExpired();
+    });
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() => _loggingOut = true);
+
+    final refreshToken = widget.session.refreshToken;
+    if (refreshToken != null && refreshToken.trim().isNotEmpty) {
+      try {
+        await _userService.logout(refreshToken: refreshToken);
+      } catch (_) {
+        // Local session cleanup still matters if the API is unavailable.
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    _clearAndReturnToLogin();
+  }
+
+  void _clearAndReturnToLogin() {
+    SessionController.instance.clear();
     Navigator.pushNamedAndRemoveUntil(
       context,
       AppRoutes.home,
@@ -28,100 +98,129 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ── Session expired ────────────────────────────────────────────────────────
-
-  void _onSessionExpired(BuildContext context) {
-    if (!context.mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        icon: const Icon(
-          Icons.timer_off_rounded,
-          color: AppColors.danger,
-          size: 36,
-        ),
-        title: const Text('Session expirée'),
-        content: const Text(
-          'Votre session a expiré pour des raisons de sécurité. '
-          'Veuillez vous reconnecter.',
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _logout(context);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Se reconnecter'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 760;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _DashboardAppBar(
-        onLogout: () => _logout(context),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Row(
+          children: [
+            BrandMark(size: 34),
+            SizedBox(width: 10),
+            Text('NHIS Dashboard', style: AppTextStyles.h3),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _StatusChip(connected: _apiConnected),
+          ),
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
       ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: RefreshIndicator(
+              onRefresh: _validateStatus,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
-                  // ── Greeting + live clock ────────────────────────────────
-                  DashboardHeader(user: session.user),
+                  Text('Dashboard', style: AppTextStyles.h2),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.session.user.email ?? widget.session.user.fullName,
+                    style: AppTextStyles.bodySmall,
+                  ),
                   const SizedBox(height: 20),
-
-                  // ── Compte à rebours de session ──────────────────────────
-                  SessionCountdown(
-                    expiresAt: session.expiresAt,
-                    totalDuration: const Duration(minutes: 30),
-                    onExpired: () => _onSessionExpired(context),
-                    onExtend: () {
-                      // TODO: call refresh-token endpoint.
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Session prolongée de 30 minutes.'),
-                          backgroundColor: AppColors.primary,
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: isWide ? 2 : 1,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: isWide ? 2.8 : 3.5,
+                    children: [
+                      _MetricTile(
+                        icon: Icons.access_time_rounded,
+                        iconColor: AppColors.secondary,
+                        label: 'Current Time',
+                        value: _formatTime(_now),
+                        detail: _formatDate(_now),
+                      ),
+                      _MetricTile(
+                        icon: Icons.timer_outlined,
+                        iconColor: AppColors.primary,
+                        label: 'Session Duration',
+                        value: _formatDuration(_sessionDuration),
+                        detail: 'hh:mm:ss',
+                      ),
+                      _MetricTile(
+                        icon: Icons.check_circle_outline_rounded,
+                        iconColor:
+                            _apiConnected == true
+                                ? AppColors.primary
+                                : AppColors.danger,
+                        label: 'API Status',
+                        value: _statusText(
+                          _apiConnected,
+                          positive: 'Connected',
+                          negative: 'Disconnected',
                         ),
-                      );
-                    },
+                        detail:
+                            _apiConnected == true
+                                ? 'API is responding'
+                                : 'Pull to retry',
+                      ),
+                      _MetricTile(
+                        icon: Icons.verified_user_outlined,
+                        iconColor:
+                            _jwtValid == true
+                                ? AppColors.primary
+                                : AppColors.danger,
+                        label: 'JWT Status',
+                        value: _statusText(
+                          _jwtValid,
+                          positive: 'Valid',
+                          negative: 'Invalid',
+                        ),
+                        detail:
+                            _jwtValid == true
+                                ? 'Token is valid'
+                                : 'Session needs login',
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-
-                  // ── Quick stats ──────────────────────────────────────────
-                  _SectionLabel(label: 'Aperçu', icon: Icons.bar_chart_rounded),
-                  const SizedBox(height: 12),
-                  const QuickStatsRow(),
-                  const SizedBox(height: 24),
-
-                  // ── Quick actions ────────────────────────────────────────
-                  _SectionLabel(
-                    label: 'Actions rapides',
-                    icon: Icons.bolt_rounded,
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _loggingOut ? null : _logout,
+                    icon:
+                        _loggingOut
+                            ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Logout'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.danger),
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  const QuickActionsGrid(),
-                  const SizedBox(height: 24),
-
-                  // ── Recent activity ──────────────────────────────────────
-                  _SectionLabel(
-                    label: 'Activité récente',
-                    icon: Icons.history_rounded,
-                  ),
-                  const SizedBox(height: 12),
-                  const RecentActivityList(),
-                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -130,73 +229,181 @@ class DashboardPage extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── AppBar ───────────────────────────────────────────────────────────────────
-
-class _DashboardAppBar extends StatelessWidget
-    implements PreferredSizeWidget {
-  const _DashboardAppBar({required this.onLogout});
-
-  final VoidCallback onLogout;
 
   @override
-  Size get preferredSize => const Size.fromHeight(60);
+  void dispose() {
+    _timer?.cancel();
+    _userService.close();
+    super.dispose();
+  }
+
+  static String _formatTime(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    final second = value.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+
+  static String _formatDate(DateTime value) {
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return '${weekdays[value.weekday - 1]}, '
+        '${months[value.month - 1]} ${value.day}, ${value.year}';
+  }
+
+  static String _formatDuration(Duration value) {
+    final hours = value.inHours.toString().padLeft(2, '0');
+    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
+  }
+
+  static String _statusText(
+    bool? value, {
+    required String positive,
+    required String negative,
+  }) {
+    if (value == null) {
+      return 'Checking';
+    }
+
+    return value ? positive : negative;
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColors.surface,
-      elevation: 0,
-      surfaceTintColor: Colors.transparent,
-      titleSpacing: 16,
-      title: const Row(
-        children: [
-          BrandMark(size: 36),
-          SizedBox(width: 10),
-          Text(
-            'NHIS Dashboard',
-            style: TextStyle(
-              color: AppColors.inkDarkest,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: iconColor.withAlpha(22),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
             ),
-          ),
-        ],
-      ),
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, color: AppColors.border),
-      ),
-      actions: [
-        IconButton(
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout_rounded),
-          color: AppColors.inkMuted,
-          tooltip: 'Se déconnecter',
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppTextStyles.caption),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: AppColors.inkDarkest,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(detail, style: AppTextStyles.caption),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-      ],
+      ),
     );
   }
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.connected});
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
+  final bool? connected;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 17, color: AppColors.inkMuted),
-        const SizedBox(width: 7),
-        Text(label, style: AppTextStyles.labelLarge),
-      ],
+    final color =
+        connected == null
+            ? AppColors.warning
+            : connected!
+            ? AppColors.primary
+            : AppColors.danger;
+    final text =
+        connected == null
+            ? 'Checking'
+            : connected!
+            ? 'Connected'
+            : 'Disconnected';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withAlpha(16),
+        border: Border.all(color: color.withAlpha(70)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, color: color, size: 8),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

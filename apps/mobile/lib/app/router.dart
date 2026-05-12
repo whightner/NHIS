@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../features/home/home_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/dashboard/dashboard_page.dart';
+import '../features/home/home_page.dart';
+import '../user/session_controller.dart';
 import '../user/user_session.dart';
 
 /// Named route constants. Import this everywhere instead of raw strings.
 abstract final class AppRoutes {
-  static const home      = '/';
-  static const login     = '/login';
+  static const home = '/';
+  static const login = '/login';
   static const dashboard = '/dashboard';
 }
 
@@ -19,7 +20,15 @@ abstract final class AppRouter {
         return _slide(const LoginPage());
 
       case AppRoutes.dashboard:
-        final session = settings.arguments as UserSession;
+        final session =
+            settings.arguments is UserSession
+                ? settings.arguments as UserSession
+                : SessionController.instance.session;
+
+        if (session == null || !session.isAuthenticated()) {
+          return _slide(const LoginPage());
+        }
+
         return _slide(DashboardPage(session: session));
 
       case AppRoutes.home:

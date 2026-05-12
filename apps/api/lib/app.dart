@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'auth/auth_api.dart';
 import 'auth/user_session_database_table.dart';
+import 'dev/dev_user_seed.dart';
 import 'http/json_http.dart';
 import 'users/user_database_table.dart';
 import 'users/users_api.dart';
@@ -17,6 +18,7 @@ final class NhisApiApp {
   Future<void> initialize() async {
     await UserDatabaseTable.createTable();
     await UserSessionDatabaseTable.createTable();
+    await const DevUserSeed().run();
   }
 
   Future<void> handle(HttpRequest request) async {

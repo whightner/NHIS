@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../shared/theme/app_colors.dart';
-import '../features/home/home_page.dart';
 import 'router.dart';
 
 /// Root widget. Owns [MaterialApp], theme, and route generation.
@@ -25,7 +24,7 @@ class NhisApp extends StatelessWidget {
         ),
       ),
       onGenerateRoute: AppRouter.onGenerateRoute,
-      home: const HomePage(),
+      initialRoute: AppRoutes.home,
     );
   }
 }

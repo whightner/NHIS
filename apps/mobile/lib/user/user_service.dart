@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
+import 'api_http_client.dart';
 import 'user_model.dart';
 import 'user_role.dart';
 import 'user_session.dart';
@@ -109,12 +109,25 @@ class UpdateUserRequest {
 }
 
 class UserService {
-  UserService({required Uri baseUrl, HttpClient? httpClient})
+  UserService({required Uri baseUrl, ApiHttpClient? httpClient})
     : _baseUrl = baseUrl,
-      _httpClient = httpClient ?? HttpClient();
+      _httpClient = httpClient ?? ApiHttpClient();
 
   final Uri _baseUrl;
-  final HttpClient _httpClient;
+  final ApiHttpClient _httpClient;
+
+  static Uri defaultBaseUrl() {
+    return Uri.parse(
+      const String.fromEnvironment(
+        'NHIS_API_BASE_URL',
+        defaultValue: 'http://localhost:8080',
+      ),
+    );
+  }
+
+  Future<void> ping() async {
+    await _sendJson(method: 'GET', path: '/health');
+  }
 
   Future<UserSession> login({
     required String email,
@@ -178,7 +191,7 @@ class UserService {
 
     if (users is! List) {
       throw UserServiceException(
-        statusCode: HttpStatus.ok,
+        statusCode: 200,
         message: 'Invalid users response',
         responseBody: response,
       );
@@ -244,7 +257,7 @@ class UserService {
   }
 
   void close() {
-    _httpClient.close(force: true);
+    _httpClient.close();
   }
 
   Future<Map<String, dynamic>> _sendJson({
@@ -253,23 +266,13 @@ class UserService {
     String? accessToken,
     Map<String, dynamic>? body,
   }) async {
-    final request = await _httpClient.openUrl(method, _resolve(path));
-    request.headers.contentType = ContentType.json;
-    request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
-
-    if (accessToken != null && accessToken.trim().isNotEmpty) {
-      request.headers.set(
-        HttpHeaders.authorizationHeader,
-        'Bearer $accessToken',
-      );
-    }
-
-    if (body != null) {
-      request.write(jsonEncode(body));
-    }
-
-    final response = await request.close();
-    final responseText = await utf8.decoder.bind(response).join();
+    final response = await _httpClient.sendJson(
+      method: method,
+      uri: _resolve(path),
+      accessToken: accessToken,
+      body: body,
+    );
+    final responseText = response.body;
     final decodedBody = _decodeResponseBody(responseText);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -330,7 +333,7 @@ class UserService {
 
     if (user is! Map<String, dynamic>) {
       throw UserServiceException(
-        statusCode: HttpStatus.ok,
+        statusCode: 200,
         message: 'Invalid user response',
         responseBody: response,
       );

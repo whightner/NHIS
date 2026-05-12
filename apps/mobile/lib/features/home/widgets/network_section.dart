@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_decorations.dart';
 import '../../../shared/widgets/section_heading.dart';
 
 /// Section showing NHIS as the hub of a connected healthcare network.
@@ -25,17 +24,17 @@ class NetworkSection extends StatelessWidget {
 
     return isWide
         ? const Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(flex: 8, child: map),
-              SizedBox(width: 46),
-              Expanded(flex: 7, child: heading),
-            ],
-          )
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(flex: 8, child: map),
+            SizedBox(width: 46),
+            Expanded(flex: 7, child: heading),
+          ],
+        )
         : const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [heading, SizedBox(height: 28), map],
-          );
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [heading, SizedBox(height: 28), map],
+        );
   }
 }
 
@@ -169,20 +168,22 @@ class _ConnectionPainter extends CustomPainter {
       Offset(size.width * 0.78, size.height * 0.78),
     ];
 
-    final paint = Paint()
-      ..color = AppColors.networkLine
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = AppColors.networkLine
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
 
     for (final point in points) {
-      final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..quadraticBezierTo(
-          (center.dx + point.dx) / 2,
-          center.dy + (point.dy > center.dy ? 30 : -30),
-          point.dx,
-          point.dy,
-        );
+      final path =
+          Path()
+            ..moveTo(center.dx, center.dy)
+            ..quadraticBezierTo(
+              (center.dx + point.dx) / 2,
+              center.dy + (point.dy > center.dy ? 30 : -30),
+              point.dx,
+              point.dy,
+            );
       canvas.drawPath(path, paint);
     }
   }
