@@ -207,14 +207,6 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Dev login: admin@nhis.local / Admin123!',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.inkMuted,
-                          ),
-                        ),
                       ],
                     ),
                   ),
