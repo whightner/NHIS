@@ -2,14 +2,28 @@ import 'dart:io';
 
 import '../http/json_http.dart';
 import '../users/user_database_model.dart';
+import 'auth_rate_limiter.dart';
+import 'auth_registration_service.dart';
 import 'auth_service.dart';
 import 'auth_token_service.dart';
+import 'registration_models.dart';
 
 final class AuthApi {
-  AuthApi({AuthService? authService})
-    : _authService = authService ?? AuthService();
+  AuthApi({
+    AuthService? authService,
+    AuthRegistrationService? registrationService,
+    AuthRateLimiter? loginLimiter,
+    AuthRateLimiter? registerLimiter,
+  }) : _authService = authService ?? AuthService(),
+       _registrationService =
+           registrationService ?? AuthRegistrationService(),
+       _loginLimiter = loginLimiter ?? AuthRateLimiter(maxAttempts: 10),
+       _registerLimiter = registerLimiter ?? AuthRateLimiter(maxAttempts: 5);
 
   final AuthService _authService;
+  final AuthRegistrationService _registrationService;
+  final AuthRateLimiter _loginLimiter;
+  final AuthRateLimiter _registerLimiter;
 
   Future<bool> handle(HttpRequest request) async {
     final path = _normalizedPath(request.uri.path);
@@ -20,6 +34,8 @@ final class AuthApi {
 
     try {
       switch ((request.method, path)) {
+        case ('POST', '/auth/register'):
+          await _register(request);
         case ('POST', '/auth/login'):
           await _login(request);
         case ('POST', '/auth/refresh'):
@@ -53,12 +69,70 @@ final class AuthApi {
         statusCode: HttpStatus.unauthorized,
         body: {'message': error.message},
       );
+    } on RegistrationValidationException catch (error) {
+      await writeJson(
+        request.response,
+        statusCode: HttpStatus.unprocessableEntity,
+        body: {'message': error.message},
+      );
+    } on RegistrationPolicyException catch (error) {
+      await writeJson(
+        request.response,
+        statusCode: HttpStatus.forbidden,
+        body: {'message': error.message},
+      );
     }
 
     return true;
   }
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  Future<void> _register(HttpRequest request) async {
+    final ip = _remoteIp(request);
+
+    if (!_registerLimiter.isAllowed(ip)) {
+      await writeJson(
+        request.response,
+        statusCode: HttpStatus.tooManyRequests,
+        body: {
+          'message': 'Too many registration attempts. Try again later.',
+          'retry_after': _registerLimiter.retryAfterSeconds(ip),
+        },
+      );
+      return;
+    }
+    _registerLimiter.record(ip);
+
+    final body = await readJsonObject(request);
+    final user = await _registrationService.register(body);
+
+    await writeJson(
+      request.response,
+      statusCode: HttpStatus.created,
+      body: {
+        'message': 'Account created successfully.',
+        'user': _userToJson(user),
+      },
+    );
+  }
+
   Future<void> _login(HttpRequest request) async {
+    final ip = _remoteIp(request);
+
+    if (!_loginLimiter.isAllowed(ip)) {
+      await writeJson(
+        request.response,
+        statusCode: HttpStatus.tooManyRequests,
+        body: {
+          'message': 'Too many login attempts. Try again later.',
+          'retry_after': _loginLimiter.retryAfterSeconds(ip),
+        },
+      );
+      return;
+    }
+    _loginLimiter.record(ip);
+
     final body = await readJsonObject(request);
     final result = await _authService.login(
       email: readRequiredString(body, 'email'),
@@ -116,6 +190,8 @@ final class AuthApi {
     );
   }
 
+  // ── Serialisation helpers ─────────────────────────────────────────────────
+
   static Map<String, dynamic> _sessionToJson(AuthSessionResult result) {
     return {
       'user': _userToJson(result.user),
@@ -138,6 +214,7 @@ final class AuthApi {
       'phone_number': user.phoneNumber,
       'role': user.role,
       'status': user.status,
+      'specialty': user.specialty,
       'facility_id': user.facilityId,
       'organization_id': user.organizationId,
       'patient_id': user.patientId,
@@ -147,11 +224,16 @@ final class AuthApi {
     };
   }
 
+  // ── Utilities ─────────────────────────────────────────────────────────────
+
+  static String _remoteIp(HttpRequest request) {
+    return request.connectionInfo?.remoteAddress.address ?? 'unknown';
+  }
+
   static String _normalizedPath(String path) {
     if (path.length > 1 && path.endsWith('/')) {
       return path.substring(0, path.length - 1);
     }
-
     return path;
   }
 }

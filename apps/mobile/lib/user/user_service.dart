@@ -129,6 +129,15 @@ class UserService {
     await _sendJson(method: 'GET', path: '/health');
   }
 
+
+  Future<void> register({required Map<String, dynamic> request}) async {
+    await _sendJson(
+      method: 'POST',
+      path: '/auth/register',
+      body: request,
+    );
+  }
+
   Future<UserSession> login({
     required String email,
     required String password,

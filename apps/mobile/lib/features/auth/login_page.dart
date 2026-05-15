@@ -183,12 +183,29 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _login,
                         ),
                         const SizedBox(height: 18),
-                        Text(
-                          'This is a test environment',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.inkLight,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account? ",
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.inkLight,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pushReplacementNamed(
+                                context,
+                                AppRoutes.register,
+                              ),
+                              child: Text(
+                                'Register',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(

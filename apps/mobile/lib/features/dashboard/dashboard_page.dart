@@ -10,6 +10,8 @@ import '../../user/session_controller.dart';
 import '../../user/user_service.dart';
 import '../../user/user_session.dart';
 
+/// Minimal post-login dashboard — shows only what the spec requires:
+/// email · login time · session duration · active session state · logout.
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key, required this.session});
 
@@ -22,74 +24,57 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final _userService = UserService(baseUrl: UserService.defaultBaseUrl());
 
-  Timer? _timer;
+  Timer? _ticker;
   DateTime _now = DateTime.now();
-  bool? _apiConnected;
-  bool? _jwtValid;
   bool _loggingOut = false;
+  bool? _sessionActive;
 
   Duration get _sessionDuration {
-    final duration = _now.difference(widget.session.createdAt.toLocal());
-    return duration.isNegative ? Duration.zero : duration;
+    final d = _now.difference(widget.session.createdAt.toLocal());
+    return d.isNegative ? Duration.zero : d;
   }
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() => _now = DateTime.now());
-      if (widget.session.isExpired(at: DateTime.now())) {
-        _clearAndReturnToLogin();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final now = DateTime.now();
+      setState(() => _now = now);
+      if (widget.session.isExpired(at: now)) {
+        _clearAndGoHome();
       }
     });
-    _validateStatus();
+    _verifySessionActive();
   }
 
-  Future<void> _validateStatus() async {
-    final apiFuture = _userService.ping();
-    final jwtFuture = _userService.currentUser(
-      accessToken: widget.session.accessToken,
-    );
-
-    final apiConnected = await apiFuture
+  Future<void> _verifySessionActive() async {
+    final valid = await _userService
+        .currentUser(accessToken: widget.session.accessToken)
         .then((_) => true)
         .catchError((_) => false);
-    final jwtValid = await jwtFuture.then((_) => true).catchError((_) => false);
 
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _apiConnected = apiConnected;
-      _jwtValid = jwtValid && !widget.session.isExpired();
-    });
+    if (!mounted) return;
+    setState(() => _sessionActive = valid && !widget.session.isExpired());
   }
 
   Future<void> _logout() async {
-    if (_loggingOut) {
-      return;
-    }
-
+    if (_loggingOut) return;
     setState(() => _loggingOut = true);
 
-    final refreshToken = widget.session.refreshToken;
-    if (refreshToken != null && refreshToken.trim().isNotEmpty) {
+    final token = widget.session.refreshToken;
+    if (token != null && token.trim().isNotEmpty) {
       try {
-        await _userService.logout(refreshToken: refreshToken);
+        await _userService.logout(refreshToken: token);
       } catch (_) {
-        // Local session cleanup still matters if the API is unavailable.
+        // Proceed with local cleanup even if the API is unreachable.
       }
     }
 
-    if (!mounted) {
-      return;
-    }
-
-    _clearAndReturnToLogin();
+    if (!mounted) return;
+    _clearAndGoHome();
   }
 
-  void _clearAndReturnToLogin() {
+  void _clearAndGoHome() {
     SessionController.instance.clear();
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -100,8 +85,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= 760;
+    final user = widget.session.user;
+    final loginTime = widget.session.createdAt.toLocal();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -113,13 +98,13 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             BrandMark(size: 34),
             SizedBox(width: 10),
-            Text('NHIS Dashboard', style: AppTextStyles.h3),
+            Text('NHIS', style: AppTextStyles.h3),
           ],
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: _StatusChip(connected: _apiConnected),
+            child: _SessionChip(active: _sessionActive),
           ),
         ],
         bottom: const PreferredSize(
@@ -130,99 +115,121 @@ class _DashboardPageState extends State<DashboardPage> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: RefreshIndicator(
-              onRefresh: _validateStatus,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text('Dashboard', style: AppTextStyles.h2),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.session.user.email ?? widget.session.user.fullName,
-                    style: AppTextStyles.bodySmall,
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                // Welcome banner
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    border: Border.all(color: AppColors.primary.withAlpha(60)),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 20),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: isWide ? 2 : 1,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: isWide ? 2.8 : 3.5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Welcome!',
+                                style: TextStyle(
+                                  color: AppColors.primaryDeep,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'You have successfully logged in.',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primaryMid,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Session info card
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
                     children: [
-                      _MetricTile(
-                        icon: Icons.access_time_rounded,
-                        iconColor: AppColors.secondary,
-                        label: 'Current Time',
-                        value: _formatTime(_now),
-                        detail: _formatDate(_now),
+                      _InfoRow(
+                        icon: Icons.mail_outline_rounded,
+                        label: 'Email',
+                        value: user.email ?? user.fullName,
                       ),
-                      _MetricTile(
+                      const _Divider(),
+                      _InfoRow(
+                        icon: Icons.login_rounded,
+                        label: 'Login Time',
+                        value: _formatDateTime(loginTime),
+                      ),
+                      const _Divider(),
+                      _InfoRow(
                         icon: Icons.timer_outlined,
-                        iconColor: AppColors.primary,
-                        label: 'Session Duration',
+                        label: 'Session Time',
                         value: _formatDuration(_sessionDuration),
-                        detail: 'hh:mm:ss',
+                        valueMonospace: true,
                       ),
-                      _MetricTile(
-                        icon: Icons.check_circle_outline_rounded,
-                        iconColor:
-                            _apiConnected == true
-                                ? AppColors.primary
-                                : AppColors.danger,
-                        label: 'API Status',
-                        value: _statusText(
-                          _apiConnected,
-                          positive: 'Connected',
-                          negative: 'Disconnected',
-                        ),
-                        detail:
-                            _apiConnected == true
-                                ? 'API is responding'
-                                : 'Pull to retry',
-                      ),
-                      _MetricTile(
+                      const _Divider(),
+                      _InfoRow(
                         icon: Icons.verified_user_outlined,
-                        iconColor:
-                            _jwtValid == true
-                                ? AppColors.primary
-                                : AppColors.danger,
-                        label: 'JWT Status',
-                        value: _statusText(
-                          _jwtValid,
-                          positive: 'Valid',
-                          negative: 'Invalid',
-                        ),
-                        detail:
-                            _jwtValid == true
-                                ? 'Token is valid'
-                                : 'Session needs login',
+                        label: 'Session State',
+                        valueWidget: _SessionStateBadge(active: _sessionActive),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _loggingOut ? null : _logout,
-                    icon:
-                        _loggingOut
-                            ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : const Icon(Icons.logout_rounded, size: 18),
-                    label: const Text('Logout'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                ),
+                const SizedBox(height: 24),
+
+                // Logout
+                OutlinedButton.icon(
+                  onPressed: _loggingOut ? null : _logout,
+                  icon: _loggingOut
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.logout_rounded, size: 18),
+                  label: const Text('Logout'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger),
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -232,155 +239,146 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker?.cancel();
     _userService.close();
     super.dispose();
   }
 
-  static String _formatTime(DateTime value) {
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    final second = value.second.toString().padLeft(2, '0');
-    return '$hour:$minute:$second';
-  }
-
-  static String _formatDate(DateTime value) {
-    const weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
+  static String _formatDateTime(DateTime value) {
+    final h = value.hour.toString().padLeft(2, '0');
+    final m = value.minute.toString().padLeft(2, '0');
+    final s = value.second.toString().padLeft(2, '0');
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-
-    return '${weekdays[value.weekday - 1]}, '
-        '${months[value.month - 1]} ${value.day}, ${value.year}';
+    return '${months[value.month - 1]} ${value.day}, ${value.year}  $h:$m:$s';
   }
 
-  static String _formatDuration(Duration value) {
-    final hours = value.inHours.toString().padLeft(2, '0');
-    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$seconds';
-  }
-
-  static String _statusText(
-    bool? value, {
-    required String positive,
-    required String negative,
-  }) {
-    if (value == null) {
-      return 'Checking';
-    }
-
-    return value ? positive : negative;
+  static String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
+// ── Sub-widgets ────────────────────────────────────────────────────────────
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
     required this.icon,
-    required this.iconColor,
     required this.label,
-    required this.value,
-    required this.detail,
+    this.value,
+    this.valueMonospace = false,
+    this.valueWidget,
   });
 
   final IconData icon;
-  final Color iconColor;
   final String label;
-  final String value;
-  final String detail;
+  final String? value;
+  final bool valueMonospace;
+  final Widget? valueWidget;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: iconColor.withAlpha(22),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.inkLight),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: AppTextStyles.caption.copyWith(color: AppColors.inkLight),
             ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: AppTextStyles.caption),
-                  const SizedBox(height: 6),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      maxLines: 1,
-                      style: const TextStyle(
-                        color: AppColors.inkDarkest,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+          ),
+          Expanded(
+            child: valueWidget ??
+                Text(
+                  value ?? '',
+                  style: TextStyle(
+                    color: AppColors.inkDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: valueMonospace ? 'monospace' : null,
                   ),
-                  const SizedBox(height: 4),
-                  Text(detail, style: AppTextStyles.caption),
-                ],
-              ),
-            ),
-          ],
-        ),
+                ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.connected});
-
-  final bool? connected;
+class _Divider extends StatelessWidget {
+  const _Divider();
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        connected == null
-            ? AppColors.warning
-            : connected!
-            ? AppColors.primary
-            : AppColors.danger;
-    final text =
-        connected == null
-            ? 'Checking'
-            : connected!
-            ? 'Connected'
-            : 'Disconnected';
+    return const Divider(height: 1, color: AppColors.border, indent: 18);
+  }
+}
+
+class _SessionStateBadge extends StatelessWidget {
+  const _SessionStateBadge({required this.active});
+  final bool? active;
+
+  @override
+  Widget build(BuildContext context) {
+    if (active == null) {
+      return _badge(AppColors.warning, Icons.hourglass_top_rounded, 'Checking');
+    }
+    return active!
+        ? _badge(AppColors.primary, Icons.check_circle_rounded, 'Active')
+        : _badge(AppColors.danger, Icons.cancel_rounded, 'Expired');
+  }
+
+  static Widget _badge(Color color, IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(18),
+        border: Border.all(color: color.withAlpha(70)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionChip extends StatelessWidget {
+  const _SessionChip({required this.active});
+  final bool? active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active == null
+        ? AppColors.warning
+        : active!
+        ? AppColors.primary
+        : AppColors.danger;
+    final text = active == null
+        ? 'Checking'
+        : active!
+        ? 'Connected'
+        : 'Disconnected';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
